@@ -2,7 +2,7 @@
 title: "Estadística descriptiva"
 author: "Jorge_Montero"
 date: "2024-07-25"
-output: html_document
+output: github_document
 ---
 #Procesar la infromación
 
