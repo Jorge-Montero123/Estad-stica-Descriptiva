@@ -1,0 +1,125 @@
+---
+title: "Estadística descriptiva"
+author: "Jorge_Montero"
+date: "2024-07-25"
+output: html_document
+---
+#Procesar la infromación
+
+```{r}
+library(openxlsx)
+library(dplyr)
+
+data<-read.csv("C:/Users/Montero/Desktop/Betametrica/Iowa_Liquor_Sales.csv", stringsAsFactors = F,header = T)
+datos<-data %>% 
+  mutate(Sale..Dollars.=(as.numeric(substr(data$Sale..Dollars.,2,15))),
+         City=toupper(City),
+         Store.Name=toupper(Store.Name),
+         Date=as.Date(Date,format="%m/%d/%Y"),
+         anio=lubridate::year(Date)) %>%  
+  rename(ventas=Sale..Dollars., 
+         ciudad=City,
+         categoria=Category.Name,
+         nombre_tienda=Store.Name)
+
+datos %>% group_by(ciudad) %>% 
+  summarise(suma=sum(ventas))
+```
+
+#promedio de ventas por cuidad
+```{r}
+datos %>% group_by(ciudad) %>% 
+  summarise(promedio_ventas=mean(ventas))
+
+```
+#Promedio de ventas por sucursal 
+```{r}
+datos %>% group_by(nombre_tienda) %>% 
+  summarise(promedio_ventas=mean(ventas)) %>% 
+  arrange(-promedio_ventas)
+```
+
+
+#Expandiendo resultados
+```{r}
+library(tidyverse)
+
+datos %>% 
+group_by(ciudad,anio) %>%  #para todaslas variables
+summarise_each(.,funs (maximo=max(.,na.rm=T),
+                      minimo=min(.,na.rm=T)))
+datos %>% 
+group_by(ciudad,anio) %>%  #para la variables ventas
+summarise_each(.,funs (maximo=max(.,na.rm=T),
+                      minimo=min(.,na.rm=T),
+                      media=mean(.,na.rm=T),
+                    mediana=median(.,na.rm=T)),ventas) 
+#Pivoteando la tabla
+```
+
+
+```{r}
+datos %>% 
+group_by(ciudad,anio) %>%  #para la variables ventas
+summarise_each(.,funs (maximo=max(.,na.rm=T),
+                      minimo=min(.,na.rm=T),
+                      media=mean(.,na.rm=T),                    mediana=median(.,na.rm=T)),ventas)%>% 
+pivot_wider(names_from = ciudad,
+            values_from = media,
+            values_fill = 0)
+```
+#Pivoteando  y agregando valores
+```{r}
+
+datos %>% 
+group_by(ciudad,anio) %>%  #para la variables ventas
+summarise_each(.,funs (maximo=max(.,na.rm=T),
+                      minimo=min(.,na.rm=T),
+                      media=mean(.,na.rm=T,trim = 0.5),                          mediana=median(.,na.rm=T)),ventas)%>% 
+pivot_wider(names_from = ciudad,
+            values_from = c(media,mediana),names_prefix = "empresas_",
+            values_fill = 0)
+
+```
+#Cuantiles
+```{r}
+quantile(datos$ventas,probs = seq(0,1,0.2))
+
+quantile(datos$ventas)
+
+#ahora usando dplyr
+datos %>% 
+group_by(ciudad,anio) %>%  #para la variables ventas
+summarise_each(.,funs (maximo=max(.,na.rm=T),
+                      minimo=min(.,na.rm=T),
+                      media=mean(.,na.rm=T,trim = 0.2),
+                      p_25=quantile(.,probs=0.25),
+                      mediana=median(.,probs=0.5)),ventas)%>%  
+                      select(ciudad,media,mediana,anio,maximo,p_25)%>% 
+pivot_wider(names_from = ciudad,id_cols=anio,
+            values_from = c(media,mediana,p_25),names_prefix = "empresas_",
+            values_fill = 0)
+
+```
+
+```{r}
+datos %>% 
+ select(ciudad,ventas) %>% 
+  group_by(ciudad) %>% 
+  mutate(n_tile=ntile(ventas,25)) %>% 
+  group_by(ciudad,n_tile) %>% 
+  summarise(promedio_ventas=mean(ventas)) %>% 
+  pivot_wider(names_from = ciudad,
+            values_from = c(promedio_ventas),names_prefix = "empresas_",
+            values_fill = 0)
+
+
+
+
+
+
+
+
+
+```
+
